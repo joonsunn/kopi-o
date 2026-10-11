@@ -1,6 +1,8 @@
 package tray
 
 import (
+	_ "embed"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -31,6 +33,12 @@ var Presets = []Preset{
 	{Label: "∞", Indefinite: true},
 }
 
+//go:embed icons/on.png
+var iconOn []byte
+
+//go:embed icons/off.png
+var iconOff []byte
+
 // Deps wires the tray to the supervisor. Sup must be non-nil;
 // its onExpire callback should call Refresh (see cmd/kopi-o).
 type Deps struct {
@@ -58,6 +66,9 @@ func Run(d Deps) {
 
 func onReady() {
 	close(ready)
+	// Left-click toggles the hold; right-click still opens the menu
+	// (tappedRight stays nil). Registered before the menu build.
+	systray.SetOnTapped(toggle)
 	cfg := config.Load()
 
 	// Best-effort login-item sync with persisted config.
@@ -130,6 +141,48 @@ func watchPreset(item *systray.MenuItem, p Preset) {
 	}
 }
 
+// toggle flips the hold on left-click: active → stop and reset to Off;
+// idle → start the last persisted preset (default 1h when Off/empty).
+// Same locking/persist pattern as watchPreset.
+func toggle() {
+	mu.Lock()
+	if deps.Sup.Active() {
+		deps.Sup.Stop()
+		selected = "Off"
+		persist(config.Config{LaunchAtLogin: loginChecked()})
+	} else {
+		p := lastPreset()
+		if err := deps.Sup.Start(p.Secs, p.Indefinite); err != nil {
+			log.Printf("tray: toggle start %s: %v", p.Label, err)
+		} else {
+			selected = p.Label
+			persist(config.Config{
+				PresetSecs:    p.Secs,
+				Indefinite:    p.Indefinite,
+				LaunchAtLogin: loginChecked(),
+			})
+		}
+	}
+	mu.Unlock()
+	Refresh()
+}
+
+// lastPreset returns the hold a toggle-on starts: the persisted preset,
+// defaulting to 1h when Off/empty.
+func lastPreset() Preset {
+	cfg := config.Load()
+	if cfg.Indefinite {
+		return Preset{Label: "∞", Indefinite: true}
+	}
+	if cfg.PresetSecs > 0 {
+		if l := labelFor(cfg.PresetSecs, false); l != "" {
+			return Preset{Label: l, Secs: cfg.PresetSecs}
+		}
+		return Preset{Label: fmt.Sprintf("%ds", cfg.PresetSecs), Secs: cfg.PresetSecs}
+	}
+	return Preset{Label: "1h", Secs: 3600}
+}
+
 func watchStop() {
 	for range stopItem.ClickedCh {
 		mu.Lock()
@@ -197,7 +250,12 @@ func refreshLocked() {
 	wasActive = active
 
 	systray.SetTitle(Title(active, indef, rem))
-	systray.SetTooltip(Tooltip(active, indef, rem))
+	if active {
+		systray.SetTemplateIcon(iconOn, iconOn)
+	} else {
+		systray.SetTemplateIcon(iconOff, iconOff)
+	}
+	systray.SetTooltip(Tooltip(active, indef, rem, lastPreset().Label))
 
 	current := selected
 	if !active {

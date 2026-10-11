@@ -8,7 +8,9 @@ macOS menu-bar app (Go) that holds idle sleep for a preset duration, Caffeine-st
 
 ## Menu
 
-Presets (radio): Off / 15m / 1h / 2h / 4h / ∞, plus Stop, Launch-at-login checkbox, Quit. Title shows state: `○` idle, `☕ 42m` counting down, `☕ ∞` indefinite. The selected preset persists across restarts and is restored on launch (Off stays idle).
+Left-click the tray icon toggles the hold (idle → start last preset, default 1h; active → stop). Right-click opens the menu.
+
+Presets (radio): Off / 15m / 1h / 2h / 4h / ∞, plus Stop, Launch-at-login checkbox, Quit. Icon legend: filled cup + steam = holding, cup outline = idle. Title shows countdown only while holding (`42m`, `1h05m`, `38s`, `∞`; empty when idle). The selected preset persists across restarts and is restored on launch (Off stays idle).
 
 ## Install
 
@@ -39,5 +41,5 @@ rm -rf ~/Applications/Kopi-O.app ~/Library/LaunchAgents/com.kopio.kopi-o.plist
 ## Limitations
 
 - Prevents idle sleep only; lid-close/clamshell and MDM screen-lock/policy still win.
-- An indefinite hold left on drains battery — `☕ ∞` is prominent and Stop is one click.
+- An indefinite hold left on drains battery — the filled-cup icon and `∞` title are prominent and Stop is one click.
 - `pmset -g assertions | grep -i caffeinate` is the ground truth for “holding”.
