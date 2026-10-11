@@ -54,6 +54,7 @@ func Load() Config {
 
 // LoadFrom reads config from an explicit path (test hook).
 // Missing file or corrupt JSON yields defaults.
+// PresetSecs 0 with Indefinite=false is a valid "Off" state.
 func LoadFrom(path string) Config {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -63,10 +64,8 @@ func LoadFrom(path string) Config {
 	if err := json.Unmarshal(data, &c); err != nil {
 		return Default()
 	}
-	if c.PresetSecs <= 0 && !c.Indefinite {
-		// Zero-value / empty file: fall back to defaults.
-		// A valid indefinite config has Indefinite=true, keep it.
-		return Default()
+	if c.PresetSecs < 0 {
+		c.PresetSecs = 0
 	}
 	return c
 }

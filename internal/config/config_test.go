@@ -94,3 +94,16 @@ func TestSaveIndefiniteRoundTrip(t *testing.T) {
 		t.Fatalf("LoadFrom() = %+v, want %+v", got, want)
 	}
 }
+
+func TestOffStateRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "config.json")
+	// Off = PresetSecs 0, Indefinite false. Must survive, not coerce to defaults.
+	want := Config{PresetSecs: 0, Indefinite: false, LaunchAtLogin: false}
+	if err := SaveTo(p, want); err != nil {
+		t.Fatal(err)
+	}
+	if got := LoadFrom(p); got != want {
+		t.Fatalf("LoadFrom() = %+v, want %+v", got, want)
+	}
+}
