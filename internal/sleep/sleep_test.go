@@ -19,7 +19,7 @@ func TestStartStop(t *testing.T) {
 	if !slices.Contains(args, "-t") {
 		t.Fatalf("finite hold args %q missing -t", args)
 	}
-	for _, want := range []string{"-dimsu"} {
+	for _, want := range []string{"-dimsu", "-w"} {
 		if !slices.Contains(args, want) {
 			t.Fatalf("args %q missing %q", args, want)
 		}

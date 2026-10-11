@@ -7,6 +7,7 @@ package sleep
 
 import (
 	"errors"
+	"os"
 	"os/exec"
 	"strconv"
 	"sync"
@@ -52,11 +53,12 @@ func (s *Supervisor) Args() []string {
 
 // Start begins a hold: indefinite (no -t) or finite (-t secs).
 // It kills any prior holder first. Finite secs must be > 0.
+// The child watches the parent pid (-w) so a crash releases the hold.
 func (s *Supervisor) Start(secs int, indefinite bool) error {
 	if !indefinite && secs <= 0 {
 		return errors.New("sleep: finite hold needs secs > 0")
 	}
-	args := []string{"-dimsu"}
+	args := []string{"-dimsu", "-w", strconv.Itoa(os.Getpid())}
 	if !indefinite {
 		args = append(args, "-t", strconv.Itoa(secs))
 	}
